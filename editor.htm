@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WPBC Warna Pintar</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.5.15/es5-shim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="../melayu_buengine.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+        }
+        button {
+            background-color: #009900;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #003300;
+        }
+        #counter {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body onload="initRichEdit()">
+    <iframe id="SaveFrame" width="0" height="0"></iframe>
+    <table border="0" cellpadding="0" cellspacing="0" width="800">
+        <!-- Bahagian UI aplikasi -->
+        <tr>
+            <td colspan="22"><img src="images/editor_r1_c1.jpg" alt="Header" width="800" height="109"></td>
+        </tr>
+        <tr>
+            <td colspan="2"><button onclick="makeDefault()">BIASA</button></td>
+            <td colspan="11"><span id="counter">0</span></td>
+            <td colspan="5"><img src="images/editor_r2_c18.jpg" alt="Section" width="232" height="59"></td>
+        </tr>
+        <!-- Butang fungsi -->
+        <tr>
+            <td colspan="3"><button onclick="goToPage(1)">INTRO</button></td>
+            <td colspan="3"><button onclick="goToPage(2)">KONFLIK</button></td>
+            <td colspan="3"><button onclick="goToPage(3)">KEMUNCAK</button></td>
+            <td colspan="3"><button onclick="goToPage(4)">PENYELESAIAN</button></td>
+            <td colspan="2"><button onclick="copyKarangan()">SALIN</button></td>
+            <td colspan="2"><button onclick="saveKarangan()">SIMPAN</button></td>
+            <td><button onclick="karanganBaru()">BARU</button></td>
+            <td colspan="2"><button>HANTAR</button></td>
+        </tr>
+    </table>
+    <iframe id="SaveFrame" width="0" height="0"></iframe>
+</body>
+</html>
