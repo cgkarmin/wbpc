@@ -1,56 +1,242 @@
-<!DOCTYPE html>
-<html lang="ms">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WPBC Warna Pintar</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.5.15/es5-shim.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
-    <script src="../melayu_buengine.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #ffffff;
+const segments = ['Pembukaan', 'Sub-Konflik', 'Konflik', 'Sub-Kemuncak', 'Kemuncak', 'Penyelesaian'];
+
+function makeSegmentButtons() {
+    let x = "<table cellspacing=0 cellpadding=0 id='bahagianBar'><tr>";
+    for (let i = 1; i <= segments.length; i++) {
+        x += `<td><a href="javascript:goToPage(${i});" class="bahagian" id="link${i}">${segments[i - 1]}</a></td>`;
+    }
+    x += "</tr></table>";
+    document.open();
+    document.write(x);
+    document.close();
+}
+
+function makeDB() {
+    let x = '<form name="db" method="" action="">';
+    for (let i = 1; i <= segments.length + 1; i++) {
+        x += `<input type="hidden" name="p${i}" value="">`;
+    }
+    x += '<input type="hidden" name="curPage" value=1>';
+    x += '</form>';
+    document.open();
+    document.write(x);
+    document.close();
+}
+
+function initRichEdit() {
+    const el = document.getElementById("edit").contentWindow;
+    const d = el.document;
+    d.designMode = "On";
+
+    el.getRange = function () {
+        return this.document.selection.createRange();
+    };
+
+    const handleKeyEvents = (e) => {
+        if (e.keyCode === 13) { // ENTER
+            const sel = el.document.selection;
+            if (sel.type === "Control") return;
+
+            const r = sel.createRange();
+            r.pasteHTML("<br>");
+            e.stopPropagation();
+            e.preventDefault();
+
+            r.select();
+            r.moveEnd("character", 1);
+            r.moveStart("character", 1);
+            r.collapse(false);
         }
-        button {
-            background-color: #009900;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            cursor: pointer;
+    };
+
+    d.addEventListener('keydown', handleKeyEvents);
+    d.addEventListener('keypress', handleKeyEvents);
+    d.addEventListener('keyup', handleKeyEvents);
+
+    const updateEvents = () => {
+        updatePreviewBox();
+        updateCounter();
+    };
+
+    d.addEventListener('keydown', updateEvents);
+    d.addEventListener('keypress', updateEvents);
+    d.addEventListener('keyup', updateEvents);
+}
+
+function goToPage(n) {
+    const el = document.getElementById("edit").contentWindow;
+    const c = el.document.body.innerHTML;
+
+    const db = document.forms["db"];
+    const x = db.elements[db.length - 1].value;
+    db.elements[x - 1].value = escape(c);
+
+    db.elements[db.length - 1].value = n;
+    const newC = db.elements[n - 1].value;
+    el.document.body.innerHTML = unescape(newC);
+
+    el.focus();
+}
+
+function tanda(elemen) {
+    const colours = ["#006699", "#FF9900", "#CC0000", "#996633", "#CC00CC", "#009933"];
+    const elements = ["plot", "watak", "perasaan", "gambaran", "frasabb", "dialog"];
+
+    const el = document.getElementById("edit").contentWindow;
+    const r = el.getRange();
+
+    if (r.text.replace(/\s/g, "") !== "") {
+        if (r.text.charAt(0) === " ") r.moveStart("character", 1);
+        if (r.text.charAt(r.text.length - 1) === " ") r.moveEnd("character", -1);
+
+        const t = r.text;
+        r.execCommand('foreColor', false, colours[elements.indexOf(elemen)]);
+        updatePreviewBox();
+        r.select();
+    }
+}
+
+function doPreview() {
+    const karangan = getWholeKarangan();
+
+    const pHTML = `
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <title></title>
+                <meta charset="UTF-8">
+                <link rel="stylesheet" href="box.css" type="text/css">
+            </head>
+            <body>${karangan}</body>
+        </html>
+    `;
+
+    const w = window.open('about:blank', '', 'menubar=yes,scrollbars=yes,width=400,height=300');
+    const d = w.document;
+    d.open();
+    d.clear();
+    d.write(pHTML);
+    d.close();
+}
+
+function karanganBaru() {
+    if (confirm("Buangkan segala data dan mulakan yang baru?")) {
+        const db = document.forms["db"];
+        for (let i = 0; i < db.length; i++) {
+            db.elements[i].value = "";
         }
-        button:hover {
-            background-color: #003300;
+
+        db.elements[db.length - 1].value = 1;
+
+        const el = document.getElementById("edit").contentWindow;
+        el.document.body.innerHTML = "";
+
+        updatePreviewBox();
+        updateCounter();
+    }
+}
+
+function markPage() {
+    const n = document.forms["db"].curPage.value;
+    document.getElementById(`link${n}`).className = 'bahagianIni';
+    document.getElementById(`link${n}`).onclick = () => false;
+}
+
+function deMarkPage() {
+    const n = document.forms["db"].curPage.value;
+    document.getElementById(`link${n}`).className = 'bahagian';
+    document.getElementById(`link${n}`).onclick = () => true;
+}
+
+function makeDefault() {
+    const r = document.getElementById("edit").contentWindow.getRange();
+    if (r.text.replace(/\s/g, "") === "") return false;
+
+    if (r.text.charAt(0) === " ") r.moveStart("character", 1);
+    if (r.text.charAt(r.text.length - 1) === " ") r.moveEnd("character", -1);
+
+    r.execCommand("removeFormat");
+    updatePreviewBox();
+    r.select();
+}
+
+function getWholeKarangan() {
+    let karangan = "";
+
+    const el = document.getElementById("edit").contentWindow;
+    const c = el.document.body.innerHTML;
+
+    const db = document.forms["db"];
+    const x = db.elements[db.length - 1].value;
+    db.elements[x - 1].value = escape(c);
+
+    for (let i = 1; i <= db.length - 1; i++) {
+        let z = unescape(db.elements[i - 1].value);
+        if (z.replace(/\s/g, "") !== "") {
+            karangan += z.toLowerCase().indexOf("<p>") !== -1 ? "" : "<p>";
+            karangan += z;
         }
-        #counter {
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body onload="initRichEdit()">
-    <iframe id="SaveFrame" width="0" height="0"></iframe>
-    <table border="0" cellpadding="0" cellspacing="0" width="800">
-        <!-- Bahagian UI aplikasi -->
-        <tr>
-            <td colspan="22"><img src="images/editor_r1_c1.jpg" alt="Header" width="800" height="109"></td>
-        </tr>
-        <tr>
-            <td colspan="2"><button onclick="makeDefault()">BIASA</button></td>
-            <td colspan="11"><span id="counter">0</span></td>
-            <td colspan="5"><img src="images/editor_r2_c18.jpg" alt="Section" width="232" height="59"></td>
-        </tr>
-        <!-- Butang fungsi -->
-        <tr>
-            <td colspan="3"><button onclick="goToPage(1)">INTRO</button></td>
-            <td colspan="3"><button onclick="goToPage(2)">KONFLIK</button></td>
-            <td colspan="3"><button onclick="goToPage(3)">KEMUNCAK</button></td>
-            <td colspan="3"><button onclick="goToPage(4)">PENYELESAIAN</button></td>
-            <td colspan="2"><button onclick="copyKarangan()">SALIN</button></td>
-            <td colspan="2"><button onclick="saveKarangan()">SIMPAN</button></td>
-            <td><button onclick="karanganBaru()">BARU</button></td>
-            <td colspan="2"><button>HANTAR</button></td>
-        </tr>
-    </table>
-    <iframe id="SaveFrame" width="0" height="0"></iframe>
-</body>
-</html>
+    }
+
+    return karangan;
+}
+
+function updatePreviewBox() {
+    const k = getWholeKarangan();
+    const previewBox = document.getElementById("previewBox").contentWindow;
+    previewBox.document.body.innerHTML = k;
+}
+
+function saveKarangan() {
+    updatePreviewBox();
+    const karangan = getWholeKarangan();
+    const someVar = `
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <title></title>
+                <meta charset="UTF-8">
+            </head>
+            <body>${karangan}</body>
+        </html>
+    `;
+
+    const saveFrame = document.getElementById("SaveFrame").contentWindow;
+    saveFrame.document.open("text/html", "replace");
+    saveFrame.document.write(someVar);
+    saveFrame.document.close();
+    saveFrame.document.execCommand('SaveAs');
+}
+
+function copyKarangan() {
+    updatePreviewBox();
+    const el = document.getElementById("previewBox").contentWindow;
+    const x = el.document.body.createTextRange();
+    x.execCommand('Copy');
+    alert("Karangan anda telah disalinkan ke clipboard dan boleh ditampalkan ke dalam editor kesukaan anda.");
+}
+
+function getNoOfWords() {
+    let karangan = getWholeKarangan();
+
+    const htmlTags = /<[/]?\w+[^>]*>/gi;
+    const extraSpaces = /\s{2,}/gi;
+    const nobrs = /&nbsp;/gi;
+
+    karangan = karangan.replace(htmlTags, " ");
+    karangan = karangan.replace(nobrs, " ");
+    karangan = karangan.replace(extraSpaces, " ");
+    karangan = karangan.trim();
+
+    if (karangan.replace(/\s/g, "") === "") {
+        return 0;
+    } else {
+        return karangan.split(" ").length;
+    }
+}
+
+function updateCounter() {
+    const count = getNoOfWords();
+    document.getElementById("counter").innerText = count;
+}
+`` ▋
